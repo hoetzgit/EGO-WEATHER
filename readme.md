@@ -4,6 +4,12 @@ A modern and responsive weather dashboard designed for Raspberry Pi, powered by 
 
 This project provides a clean and informative interface for real-time conditions, forecasts, nearby locations, and environmental data.
 
+LINKS:
+- My Real Time PWS: https://weewx.didieco.eu/weewx/dashboard/
+- weatherunderground: https://www.wunderground.com/dashboard/pws/IROME7505
+- pwsweather: https://www.pwsweather.com/station/pws/ROMEXIIGDD
+
+
 ---
 
 ## 📸 Preview
