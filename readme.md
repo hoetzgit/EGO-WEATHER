@@ -9,6 +9,8 @@ This project provides a clean and informative interface for real-time conditions
 ## 📸 Preview
 
 ![Dashboard](screenshots/EGO-Weather_current.png)
+![Dashboard](screenshots/EGO-Weather_current_tile1.png)
+![Dashboard](screenshots/EGO-Weather_current_tile2.png)
 
 ---
 
