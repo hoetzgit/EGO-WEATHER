@@ -65,8 +65,8 @@ rpi-weather-dashboard/
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/your-username/rpi-weather-dashboard.git
-cd rpi-weather-dashboard
+git clone https://github.com/GDiDieco/EGO-WEATHER.git
+cd EGO-WEATHER
 ```
 
 ---
