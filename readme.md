@@ -154,21 +154,6 @@ Locations are defined in the configuration and resolved via API.
 
 ---
 
-## 🖼️ Screenshots
-
-Add more screenshots here:
-
-```
-screenshots/
-```
-
-Suggested:
-
-* Full dashboard
-* Nearby tile
-* Mobile view
-
----
 
 ## 🛠️ Customization
 
