@@ -11,7 +11,13 @@ This project provides a clean and informative interface for real-time conditions
 ![Dashboard](screenshots/EGO-Weather_current.png)
 ![Dashboard](screenshots/EGO-Weather_current_tile1.png)
 ![Dashboard](screenshots/EGO-Weather_current_tile2.png)
-
+![Dashboard](screenshots/EGO-Weather_current_tile3.png)
+![Dashboard](screenshots/EGO-Weather_current_tile4.png)
+![Dashboard](screenshots/EGO-Weather_current_tile5.png)
+![Dashboard](screenshots/EGO-Weather_current_tile6.png)
+![Dashboard](screenshots/EGO-Weather_current_history1.png)
+![Dashboard](screenshots/EGO-Weather_current_history2.png)
+![Dashboard](screenshots/EGO-Weather_current_history3.png)
 ---
 
 ## 🚀 Features
