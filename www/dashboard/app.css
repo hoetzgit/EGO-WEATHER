@@ -4263,3 +4263,21 @@ button {
     0 0 8px rgba(239, 68, 68, 0.3),
     0 0 0 1px rgba(239, 68, 68, 0.25) inset;
 }
+
+/* === FIX SCROLL MODALE ALERTS === */
+
+#alertsModal .history-modal__body {
+  overflow-y: auto;
+  max-height: 100%;
+  padding-right: 6px; /* evita taglio scrollbar */
+}
+
+/* scrollbar più elegante */
+#alertsModal .history-modal__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+#alertsModal .history-modal__body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+}

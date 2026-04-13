@@ -251,6 +251,117 @@ function formatHourLabel(value) {
   return match ? match[1] : str;
 }
 
+function weatherCategoryFromForecast(summary, options = {}) {
+  const s = String(summary || '').toLowerCase();
+
+  const pop = parseNumber(options.pop);
+  const humidity = parseNumber(options.humidity);
+  const windKmh = parseNumber(options.windKmh);
+  const isNight = !!options.isNight;
+
+  // storm / thunder
+  if (
+    /thunder|tstorm|storm|temporale|temporali|fulmini|grandine/.test(s)
+  ) {
+    return 'storm';
+  }
+
+  // snow / ice
+  if (
+    /snow|sleet|flurr|neve|nevischio|ghiaccio/.test(s)
+  ) {
+    return 'snow';
+  }
+
+  // fog / haze / mist
+  if (
+    /fog|mist|haze|nebb|foschia/.test(s) ||
+    ((humidity !== null && humidity >= 95) && (windKmh !== null && windKmh <= 4) && /cloud|nuvol|coperto|sereno|clear/.test(s))
+  ) {
+    return 'fog';
+  }
+
+  // showers / rain
+  if (
+    /acquazz|rovesc|showers|rain showers|scattered showers/.test(s)
+  ) {
+    if (pop !== null && pop >= 60) return 'showers';
+    return 'rain-light';
+  }
+
+  if (
+    /rain|piogg|drizzle/.test(s)
+  ) {
+    if (pop !== null && pop >= 60) return 'rain';
+    return 'rain-light';
+  }
+
+  // cloudy / overcast
+  if (
+    /overcast|cloudy|molto nuvol|coperto/.test(s)
+  ) {
+    return 'cloudy';
+  }
+
+  if (
+    /mostly cloudy|partly cloudy|poco nuvol|parzialmente nuvol|variabile/.test(s)
+  ) {
+    return isNight ? 'partly-cloudy-night' : 'partly-cloudy';
+  }
+
+  // sunny / clear
+  if (
+    /mostly sunny|prevalentemente soleggiato|quasi sereno|fair/.test(s)
+  ) {
+    return isNight ? 'clear-night' : 'mostly-sunny';
+  }
+
+  if (
+    /clear|sunny|sereno/.test(s)
+  ) {
+    return isNight ? 'clear-night' : 'clear';
+  }
+
+  // windy fallback
+  if (windKmh !== null && windKmh >= 28) {
+    return 'windy';
+  }
+
+  return isNight ? 'partly-cloudy-night' : 'partly-cloudy';
+}
+
+function isNightLikeEntry(entry = {}) {
+  const label = String(entry?.label || entry?.name || '').toLowerCase();
+  const summary = String(entry?.summary || '').toLowerCase();
+
+  return (
+    /night|notte|sera|stasera/.test(label) ||
+    /night|notte/.test(summary)
+  );
+}
+
+function weatherIconSmart(summary, options = {}, fallback = '⛅') {
+  const category = weatherCategoryFromForecast(summary, options);
+
+  const map = {
+    storm: '⛈️',
+    snow: '❄️',
+    fog: '🌫️',
+    rain: '🌧️',
+    'rain-light': '🌦️',
+    showers: '🌦️',
+    cloudy: '☁️',
+    'partly-cloudy': '⛅',
+    'partly-cloudy-night': '☁️',
+    'mostly-sunny': '🌤️',
+    clear: '☀️',
+    'clear-night': '🌙',
+    windy: '💨'
+  };
+
+  return map[category] || fallback;
+}
+
 function weatherIcon(value, fallback = '⛅') {
   if (!value) return fallback;
   const raw = String(value).trim();
@@ -548,7 +659,7 @@ function renderAlertsStrip(alerts) {
   const title = list.length === 1 ? '1 allerta attiva' : `${list.length} allerte attive`;
   setText('hero_alert_title', title);
 
-  const preview = list.slice(0, 2).map((alert) => {
+  const preview = list.slice(0, 3).map((alert) => {
     const label = safeValue(alert.title, 'Allerta meteo');
     const sev = alertSeverityLabel(alert.severity);
     const src = safeValue(alert.source, 'Fonte meteo');
@@ -701,16 +812,33 @@ function buildHourlyStrip(forecast) {
 }
 
 function normalizeForecastDay(day = {}, index = 0) {
+  const summary = safeValue(
+    day.summary || day.narrative || day.text || day.phrase,
+    'Dettaglio non disponibile'
+  );
+
+  const pop = parseNumber(day.rainProb ?? day.precipProbability ?? day.pop ?? day.precipChance);
+  const humidity = parseNumber(day.humidity);
+  const windKmh = parseNumber(day.windKmh ?? day.windSpeed ?? day.windKph);
+  const providerIcon = weatherIcon(day.icon, '⛅');
+
+  const smartIcon = weatherIconSmart(summary, {
+    pop,
+    humidity,
+    windKmh,
+    isNight: false
+  }, providerIcon);
+
   return {
     label: safeValue(day.dayLabel || day.day || day.name || day.weekday || `Giorno ${index + 1}`),
-    icon: weatherIcon(day.icon),
-    summary: safeValue(day.summary || day.narrative || day.text || day.phrase, 'Dettaglio non disponibile'),
+    icon: smartIcon,
+    summary,
     min: parseNumber(day.min ?? day.tempMin ?? day.low ?? day.temperatureMin),
     max: parseNumber(day.max ?? day.tempMax ?? day.high ?? day.temperatureMax),
-    rainProb: parseNumber(day.rainProb ?? day.precipProbability ?? day.pop ?? day.precipChance),
-    windKmh: parseNumber(day.windKmh ?? day.windSpeed ?? day.windKph),
+    rainProb: pop,
+    windKmh,
     windDir: safeValue(day.windDir ?? day.windDirectionCardinal ?? day.windDirection, '--'),
-    humidity: parseNumber(day.humidity),
+    humidity,
     raw: day
   };
 }
@@ -742,15 +870,27 @@ function normalizeForecastPartEntry(entry = {}, index = 0) {
   const temp = parseNumber(entry.temp);
   const tempMin = parseNumber(entry.tempMin);
   const tempMax = parseNumber(entry.tempMax);
+  const summary = safeValue(entry.summary, 'Dettaglio fascia non disponibile');
+  const pop = parseNumber(entry.rainProb ?? entry.pop ?? entry.precipChance);
+  const windKmh = parseNumber(entry.windKmh ?? entry.windSpeed ?? entry.windKph);
+  const providerIcon = weatherIcon(entry.icon, '🌥️');
+
+  const smartIcon = weatherIconSmart(summary, {
+    pop,
+    humidity: parseNumber(entry.humidity),
+    windKmh,
+    isNight: isNightLikeEntry(entry)
+  }, providerIcon);
+
   return {
     label: safeValue(entry.label || entry.name || `Fascia ${index + 1}`),
-    icon: weatherIcon(entry.icon, '🌥️'),
-    summary: safeValue(entry.summary, 'Dettaglio fascia non disponibile'),
+    icon: smartIcon,
+    summary,
     temp,
     tempMin,
     tempMax,
-    rainProb: parseNumber(entry.rainProb ?? entry.pop ?? entry.precipChance),
-    windKmh: parseNumber(entry.windKmh ?? entry.windSpeed ?? entry.windKph),
+    rainProb: pop,
+    windKmh,
     windDir: safeValue(entry.windDir ?? entry.windDirectionCardinal ?? entry.windDirection, '--'),
     humidity: parseNumber(entry.humidity),
     raw: entry
@@ -845,9 +985,9 @@ function renderHero(current, primaryForecast) {
 
 	setHtml('hero_inline_metrics', `
 	  <div class="hero-inline-stat">💧 <span>Umidità</span> <strong>${safeValue(current.outsideHumidity)}</strong></div>
+	  <div class="hero-inline-stat hero-inline-stat--rain">☔ <span>Pioggia</span> <strong>oggi ${rainToday} · rate ${rainRate}</strong></div>
 	  <div class="hero-inline-stat">🌬 <span>Vento</span> <strong>${windSpeed} · ${windDir}</strong></div>
 	  <div class="hero-inline-stat">💨 <span>Gust</span> <strong>${gust}</strong></div>
-	  <div class="hero-inline-stat hero-inline-stat--rain">☔ <span>Pioggia</span> <strong>oggi ${rainToday} · rate ${rainRate}</strong></div>
 	  <div class="hero-inline-stat">📈 <span>Pressione</span> <strong>${safeValue(current.barometer)}</strong></div>
 	  <div class="hero-inline-stat">💠 <span>Dew</span> <strong>${safeValue(current.dewPoint)}</strong></div>
 	  <div class="hero-inline-stat hero-inline-stat--uv">☀️ <span>UV</span> <strong class="hero-inline-stat__badge hero-inline-stat__badge--uv">${uvValue}</strong></div>
