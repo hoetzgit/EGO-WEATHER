@@ -987,9 +987,9 @@ function renderHero(current, primaryForecast) {
 	  <div class="hero-inline-stat">💧 <span>Umidità</span> <strong>${safeValue(current.outsideHumidity)}</strong></div>
 	  <div class="hero-inline-stat hero-inline-stat--rain">☔ <span>Pioggia</span> <strong>oggi ${rainToday} · rate ${rainRate}</strong></div>
 	  <div class="hero-inline-stat">🌬 <span>Vento</span> <strong>${windSpeed} · ${windDir}</strong></div>
-	  <div class="hero-inline-stat">💨 <span>Gust</span> <strong>${gust}</strong></div>
+	  <div class="hero-inline-stat">💨 <span>Raffica</span> <strong>${gust}</strong></div>
 	  <div class="hero-inline-stat">📈 <span>Pressione</span> <strong>${safeValue(current.barometer)}</strong></div>
-	  <div class="hero-inline-stat">💠 <span>Dew</span> <strong>${safeValue(current.dewPoint)}</strong></div>
+	  <div class="hero-inline-stat">💠 <span>P.rugiada</span> <strong>${safeValue(current.dewPoint)}</strong></div>
 	  <div class="hero-inline-stat hero-inline-stat--uv">☀️ <span>UV</span> <strong class="hero-inline-stat__badge hero-inline-stat__badge--uv">${uvValue}</strong></div>
 	  <div class="hero-inline-stat hero-inline-stat--aqi">🌫 <span>AQI</span> <strong class="hero-inline-stat__badge hero-inline-stat__badge--aqi">${aqiValue}</strong></div>
 	`);
@@ -1068,7 +1068,7 @@ function renderTemperatureTile(current) {
 
       <div class="temp-visual__pills">
         ${feelsIsDifferent ? `<span class="temp-visual__pill">🌡 Percepita ${feels}</span>` : ''}
-        <span class="temp-visual__pill">💠 Dew ${dew}</span>
+        <span class="temp-visual__pill">💠 P.rugiada ${dew}</span>
         <span class="temp-visual__pill">💧 ${humidity}</span>
       </div>
     </div>
@@ -1189,7 +1189,7 @@ function renderBarometerTile(current) {
     </div>
 
     <div class="baro-info-card">
-      <span class="baro-info-card__label">Dew point</span>
+      <span class="baro-info-card__label">P.rugiada</span>
       <span class="baro-info-card__value">${safeValue(current.dewPoint)}</span>
     </div>
   `);
