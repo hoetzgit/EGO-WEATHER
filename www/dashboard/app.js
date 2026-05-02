@@ -364,37 +364,118 @@ function weatherIconSmart(summary, options = {}, fallback = '⛅') {
 
 function weatherIcon(value, fallback = '⛅') {
   if (!value) return fallback;
+
   const raw = String(value).trim();
   if (!raw) return fallback;
+
   if (/^[☀-⛈🌤🌥🌦🌧🌨🌩🌪🌫🌬🌙⭐❄️⛅☁️💨]+$/u.test(raw)) return raw;
-  const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+  const normalized = raw.toLowerCase().replace(/\.(png|svg|jpg|jpeg|webp)$/i, '');
+  const key = normalized.replace(/[^a-z0-9]+/g, '');
+
   const map = {
     sunny: '☀️',
     clear: '☀️',
+    clears: '☀️',
     clearday: '☀️',
+    clearn: '🌙',
     clearnight: '🌙',
+    nightclear: '🌙',
+    clearnt: '🌙',
     fair: '🌤️',
     mostlysunny: '🌤️',
+    pcloudy: '⛅',
     partlycloudy: '⛅',
     partlycloudynight: '☁️',
+    mcloudy: '☁️',
     mostlycloudy: '☁️',
     cloudy: '☁️',
     overcast: '☁️',
     lightrain: '🌦️',
     rain: '🌧️',
+    rainshowers: '🌧️',
     showers: '🌦️',
+    drizzle: '🌦️',
     chancetstorms: '⛈️',
     tstorms: '⛈️',
+    tstorm: '⛈️',
     thunderstorm: '⛈️',
     snow: '❄️',
     sleet: '🌨️',
     flurries: '🌨️',
     fog: '🌫️',
+    mist: '🌫️',
     haze: '🌫️',
     windy: '💨',
     wind: '💨'
   };
+
   return map[key] || fallback;
+}
+
+function currentIsNight(primaryForecast) {
+  const sunrise =
+    primaryForecast?.raw?.astronomy?.sunrise ??
+    primaryForecast?.raw?.daily?.[0]?.sunrise ??
+    primaryForecast?.daily?.[0]?.raw?.sunrise ??
+    primaryForecast?.daily?.[0]?.sunrise;
+
+  const sunset =
+    primaryForecast?.raw?.astronomy?.sunset ??
+    primaryForecast?.raw?.daily?.[0]?.sunset ??
+    primaryForecast?.daily?.[0]?.raw?.sunset ??
+    primaryForecast?.daily?.[0]?.sunset;
+
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const riseMins = parseClockToMinutes(sunrise);
+  const setMins = parseClockToMinutes(sunset);
+
+  if (riseMins !== null && setMins !== null) {
+    return nowMins < riseMins || nowMins > setMins;
+  }
+
+  return now.getHours() < 7 || now.getHours() >= 20;
+}
+
+function currentConditionForHero(primaryForecast) {
+  const today = primaryForecast?.daily?.[0] || {};
+  const isNight = currentIsNight(primaryForecast);
+
+  let summary = today.summary
+    ? cleanForecastSummary(today.summary)
+    : 'Condizioni attuali dalla stazione';
+
+  let icon = today.icon || today.raw?.icon || '⛅';
+
+  const text = String(summary).toLowerCase();
+
+  if (
+    isNight &&
+    (
+      text.includes('sunny') ||
+      text.includes('clear') ||
+      text.includes('sereno') ||
+      text.includes('quasi sereno') ||
+      text.includes('mostly sunny')
+    )
+  ) {
+    summary = 'Sereno notte';
+    icon = 'clearn.png';
+  } else {
+    icon = weatherIconSmart(summary, {
+      pop: today.rainProb,
+      humidity: today.humidity,
+      windKmh: today.windKmh,
+      isNight
+    }, weatherIcon(icon, '⛅'));
+  }
+
+  return {
+    summary,
+    icon,
+    isNight
+  };
 }
 
 function windCardinal(raw) {
@@ -959,25 +1040,28 @@ function pickHeroTheme(summary, icon) {
 }
 
 function renderHero(current, primaryForecast) {
-  const heroSummary = primaryForecast?.daily?.[0]?.summary
-    ? cleanForecastSummary(primaryForecast.daily[0].summary)
-    : 'Condizioni attuali dalla stazione';
+  const heroCondition = currentConditionForHero(primaryForecast);
+  const heroSummary = heroCondition.summary;
+  const heroIcon = heroCondition.icon;
 
   const heroEl = document.querySelector('.hero-current');
   if (heroEl) {
-    heroEl.classList.remove('is-clear', 'is-partly-cloudy', 'is-cloudy', 'is-rainy');
-    heroEl.classList.add(pickHeroTheme(heroSummary, primaryForecast?.daily?.[0]?.icon));
+	  heroEl.classList.remove('is-clear', 'is-partly-cloudy', 'is-cloudy', 'is-rainy');
+	  heroEl.classList.add(pickHeroTheme(heroSummary, heroIcon));
   }
 
-  setText('hero_current_icon', weatherIcon(primaryForecast?.daily?.[0]?.icon, '⛅'));
+  setText('hero_current_icon', weatherIcon(heroIcon, '⛅'));
   
   const windSpeed = safeValue(current.windSpeed);
   const windDir = windDirectionToText(current.windDir);
   const gust = gustLabel(current);
   const rainToday = safeValue(current.rainToday);
   const rainRate = safeValue(current.rainRate);
+
   const uvValue = uvBadgeValue(current);
   const aqiValue = aqiBadgeValue(DASHBOARD_STATE.aqi);
+  const uvBadgeClass = `hero-inline-stat__badge hero-inline-stat__badge--uv ${uvThemeClass(current?.uvIndex)}`;
+  const aqiBadgeClass = `hero-inline-stat__badge hero-inline-stat__badge--aqi ${aqiThemeClass(overallAqiValue(DASHBOARD_STATE.aqi))}`;
 
   setText('hero_outside_temp', safeValue(current.outsideTemp));
   setText('hero_summary', heroSummary);
@@ -990,8 +1074,17 @@ function renderHero(current, primaryForecast) {
 	  <div class="hero-inline-stat">💨 <span>Raffica</span> <strong>${gust}</strong></div>
 	  <div class="hero-inline-stat">📈 <span>Pressione</span> <strong>${safeValue(current.barometer)}</strong></div>
 	  <div class="hero-inline-stat">💠 <span>P.rugiada</span> <strong>${safeValue(current.dewPoint)}</strong></div>
-	  <div class="hero-inline-stat hero-inline-stat--uv">☀️ <span>UV</span> <strong class="hero-inline-stat__badge hero-inline-stat__badge--uv">${uvValue}</strong></div>
-	  <div class="hero-inline-stat hero-inline-stat--aqi">🌫 <span>AQI</span> <strong class="hero-inline-stat__badge hero-inline-stat__badge--aqi">${aqiValue}</strong></div>
+
+	  <div class="hero-inline-stat hero-inline-stat--uv">
+		  ☀️ <span>UV</span>
+		  <strong class="${uvBadgeClass}">${uvValue}</strong>
+	  </div>
+
+	  <div class="hero-inline-stat hero-inline-stat--aqi">
+		  🌫 <span>AQI</span>
+		  <strong class="${aqiBadgeClass}">${aqiValue}</strong>
+	  </div>
+
 	`);
 
 	setHtml('hero_bottom_cards', `
